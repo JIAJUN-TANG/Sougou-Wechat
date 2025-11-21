@@ -8,14 +8,10 @@ import time
 import random
 import json
 import logging
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional
 from dataclasses import dataclass
-from datetime import datetime, timedelta
-import hashlib
-import base64
-from urllib.parse import urlparse, urljoin
+from datetime import datetime
 import threading
-from concurrent.futures import ThreadPoolExecutor
 import os
 
 
