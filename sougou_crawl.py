@@ -37,7 +37,7 @@ class WeChatCrawler:
     """微信公众号爬虫类 - 封装用于FastAPI集成"""
     
     def __init__(self, config_file: str = "wechat_accounts.txt", use_anti_crawler: bool = True, 
-                 login_cookie_path: str = "login_cookies.pkl", keyword: str = "老年机器人"):
+                 login_cookie_path: str = "login_cookies.pkl", keyword: str = None):
         # 设置日志
         logging.basicConfig(
             level=logging.INFO,
@@ -53,7 +53,17 @@ class WeChatCrawler:
         self.login_cookie_path = login_cookie_path
         self.is_logged_in = False
         self.login_session = requests.Session()
-        self.keyword = keyword
+        
+        # 配置文件路径
+        self.config_file = config_file
+        
+        # 读取关键词，如果没有传入keyword参数则从文件读取第一个有效关键词
+        if keyword:
+            self.keyword = keyword
+        else:
+            # 使用现有的load_wechat_accounts函数获取所有关键词，取第一个
+            accounts = self.load_wechat_accounts()
+            self.keyword = accounts[0] if accounts else "老年机器人"
         
         # Playwright相关
         self.playwright: Optional[Playwright] = None
@@ -129,6 +139,7 @@ class WeChatCrawler:
         except Exception as e:
             self.logger.warning(f"加载登录cookies失败: {e}")
             self.is_logged_in = False
+    
     
     def save_login_cookies(self, cookies):
         """保存登录cookies到文件"""
@@ -741,7 +752,7 @@ class WeChatCrawler:
             
             if page is None:
                 page = 3000
-            for p in range(63, page):
+            for p in range(70, page):
                 try:
                     result = self.crawl_and_extract(
                     query=account,
@@ -800,7 +811,7 @@ class WeChatCrawler:
 def main():
     """主函数"""
     # 创建爬虫实例，指定搜索关键词
-    crawler = WeChatCrawler(keyword="老年机器人")
+    crawler = WeChatCrawler()
     
     # 确保登录
     if not crawler.is_logged_in:
