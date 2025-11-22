@@ -15,6 +15,7 @@ import pickle
 
 from sqlite_storage import SQLiteArticleStorage
 from anti_crawler import create_anti_crawler_session
+import sys
 
 
 @dataclass
@@ -104,7 +105,6 @@ class WeChatCrawler:
             self.browser.close()
         if self.playwright:
             self.playwright.stop()
-        self.logger.info("Playwright浏览器已关闭")
     
     def load_login_cookies(self):
         """加载保存的登录cookies"""
@@ -297,7 +297,7 @@ class WeChatCrawler:
             if real_url:
                 return real_url
             else:
-                self.logger.warning(f"未能提取到真实URL: {sogou_url[:100]}...")
+                self.logger.warning(f"未能提取到真实URL")
                 return None
                 
         except requests.RequestException as e:
@@ -641,44 +641,57 @@ class WeChatCrawler:
                         "success": False,
                         "message": "登录失败，无法继续爬取",
                         "data": [],
-                        "stats": {"total": 0, "real_urls_extracted": 0, "content_fetched": 0, "duration": 0}
                     }
         
-            # 1. 搜索文章
+            # 搜索文章
             articles = self.search_articles(query, page, start_time, end_time)
         
             if not articles:
-                return {
-                    "success": False,
-                    "message": "未找到相关文章",
-                    "data": [],
-                    "stats": {"total": 0, "real_urls_extracted": 0, "content_fetched": 0, "duration": 0}
-                }
+                self.logger.info("暂停60秒...")
+                time.sleep(60)
+                
+                self.logger.info("清除本地cookie文件和session...")
+                if os.path.exists(self.login_cookie_path):
+                    os.remove(self.login_cookie_path)
+                self.login_session.cookies.clear()
+                if self.use_anti_crawler:
+                    self.anti_crawler_session.session.cookies.clear()
+                self.is_logged_in = False
+                
+                self.logger.info("重新执行登录...")
+                login_success = self.login(force_login=True)
+                
+                if login_success:
+                    self.logger.info(f"登录成功，重新从第{page}页开始爬取")
+                    # 重新搜索当前页
+                    articles = self.search_articles(query, page, start_time, end_time)
+                    if not articles:
+                        self.logger.warning(f"重新搜索后仍然未找到文章，建议手动重启")
+                        sys.exit(0)
+                else:
+                    self.logger.error("重新登录失败")
+                    return {
+                        "success": False,
+                        "message": "重新登录失败",
+                        "data": [],
+                    }
         
-            # 2. 获取真实URL（可选）
+            # 获取真实URL
             if get_real_urls:
                 articles = self.get_real_urls_batch(articles)
         
-            # 3. 获取完整内容（可选）
+            # 获取完整内容
             if fetch_content and get_real_urls:
                 articles = self.fetch_contents_batch(articles)
         
             # 4. 统计结果
             total_articles = len(articles)
-            real_urls_extracted = sum(1 for article in articles if article.success)
             content_fetched_count = sum(1 for article in articles if article.content_fetched)
-            duration = time.time() - start_time_exec
         
             return {
                 "success": True,
                 "message": f"成功爬取 {total_articles} 篇文章" + (f"，获取 {content_fetched_count} 篇完整内容" if fetch_content else ""),
                 "data": articles,
-                "stats": {
-                    "total": total_articles,
-                    "real_urls_extracted": real_urls_extracted,
-                    "content_fetched": content_fetched_count,
-                    "duration": round(duration, 2)
-                }
             }
 
         except Exception as e:
@@ -687,7 +700,6 @@ class WeChatCrawler:
                 "success": False,
                 "message": str(e),
                 "data": [],
-                "stats": {"total": 0, "real_urls_extracted": 0, "content_fetched": 0, "duration": 0}
             }
     
     def crawl_all_configured_accounts(self,
@@ -726,7 +738,7 @@ class WeChatCrawler:
             
             if page is None:
                 page = 3000
-            for p in range(12, page):
+            for p in range(29, page):
                 try:
                     result = self.crawl_and_extract(
                     query=account,

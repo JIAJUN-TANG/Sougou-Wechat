@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from datetime import datetime
 import threading
 import os
+from fake_useragent import UserAgent
 
 
 @dataclass
@@ -48,54 +49,13 @@ class UserAgentRotator:
     """User-Agent轮换器"""
     
     def __init__(self):
-        self.user_agents = [
-            # Chrome Windows
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",
-            
-            # Chrome macOS
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
-            
-            # Firefox Windows
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0",
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:119.0) Gecko/20100101 Firefox/119.0",
-            
-            # Firefox macOS
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:120.0) Gecko/20100101 Firefox/120.0",
-            
-            # Safari macOS
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15",
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Safari/605.1.15",
-            
-            # Edge Windows
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0",
-            
-            # Chrome Linux
-            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        ]
-        
+        self.user_agents = UserAgent(["chrome", "firefox"])
         self.current_index = 0
-        self.usage_count = {ua: 0 for ua in self.user_agents}
     
     def get_random_ua(self) -> str:
         """获取随机User-Agent"""
-        return random.choice(self.user_agents)
+        return self.user_agents.random
     
-    def get_rotated_ua(self) -> str:
-        """获取轮换的User-Agent"""
-        ua = self.user_agents[self.current_index]
-        self.usage_count[ua] += 1
-        self.current_index = (self.current_index + 1) % len(self.user_agents)
-        return ua
-    
-    def get_least_used_ua(self) -> str:
-        """获取使用次数最少的User-Agent"""
-        min_usage = min(self.usage_count.values())
-        least_used = [ua for ua, count in self.usage_count.items() if count == min_usage]
-        return random.choice(least_used)
-
 
 class ProxyPool:
     """代理池管理器"""
@@ -290,9 +250,14 @@ class AntiCrawlerSession:
         self.session.mount("https://", adapter)
     
     def update_headers(self):
-        """更新请求头"""
-        ua = self.ua_rotator.get_rotated_ua()
-        
+        """更新请求头信息"""
+        # 使用fake_useragent生成随机UA
+        try:
+            ua = self.user_agents.random
+        except:
+            # 提供备用UA作为fallback
+            ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            
         # 基础请求头
         headers = {
             "User-Agent": ua,
@@ -361,7 +326,7 @@ class AntiCrawlerSession:
                 
                 if detection["captcha"]:
                     self.stats.captcha_encounters += 1
-                    logging.warning(f"检测到验证码: {url}")
+                    logging.warning(f"检测到验证码！")
                     if attempt < self.max_retries - 1:
                         self.delay_strategy.on_failure()
                         continue
@@ -410,24 +375,6 @@ class AntiCrawlerSession:
     def post(self, url: str, **kwargs) -> requests.Response:
         """POST请求"""
         return self.make_request("POST", url, **kwargs)
-    
-    def get_stats(self) -> Dict:
-        """获取统计信息"""
-        duration = (datetime.now() - self.stats.start_time).total_seconds()
-        return {
-            "total_requests": self.stats.total_requests,
-            "successful_requests": self.stats.successful_requests,
-            "failed_requests": self.stats.failed_requests,
-            "captcha_encounters": self.stats.captcha_encounters,
-            "blocked_requests": self.stats.blocked_requests,
-            "success_rate": self.stats.successful_requests / max(1, self.stats.total_requests),
-            "duration_seconds": duration,
-            "requests_per_minute": self.stats.total_requests / max(1, duration / 60)
-        }
-    
-    def reset_stats(self):
-        """重置统计信息"""
-        self.stats = RequestStats()
 
 
 class AntiCrawlerManager:
@@ -491,18 +438,6 @@ class AntiCrawlerManager:
             session = self.sessions[self.current_session_index]
             self.current_session_index = (self.current_session_index + 1) % len(self.sessions)
             return session
-    
-    def get_all_stats(self) -> Dict:
-        """获取所有会话的统计信息"""
-        all_stats = {}
-        for i, session in enumerate(self.sessions):
-            all_stats[f"session_{i}"] = session.get_stats()
-        return all_stats
-    
-    def reset_all_stats(self):
-        """重置所有会话的统计信息"""
-        for session in self.sessions:
-            session.reset_stats()
 
 
 # 全局防反爬管理器实例
@@ -517,17 +452,3 @@ def get_anti_crawler_session() -> AntiCrawlerSession:
 def create_anti_crawler_session(use_proxy: bool = False, max_retries: int = 3) -> AntiCrawlerSession:
     """创建新的防反爬会话"""
     return AntiCrawlerSession(use_proxy=use_proxy, max_retries=max_retries)
-
-
-# 使用示例
-if __name__ == "__main__":
-    # 创建防反爬会话
-    session = create_anti_crawler_session(use_proxy=False)
-    
-    # 测试请求
-    try:
-        response = session.get("https://weixin.sogou.com/")
-        print(f"请求成功: {response.status_code}")
-        print(f"统计信息: {session.get_stats()}")
-    except Exception as e:
-        print(f"请求失败: {e}")
