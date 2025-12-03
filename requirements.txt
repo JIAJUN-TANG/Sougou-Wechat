@@ -5,6 +5,7 @@ uvicorn[standard]>=0.24.0
 # HTTP Requests & Web Scraping
 requests>=2.28.0
 beautifulsoup4>=4.11.1
+playwright>=1.40.0
 
 # Object Storage
 minio>=7.1.0

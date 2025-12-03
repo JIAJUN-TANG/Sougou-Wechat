@@ -1,361 +1,252 @@
-# 微信公众号爬虫与分析系统
+# 微信公众号数据获取端口
 
-一个功能完整的微信公众号文章爬取、存储、分析系统，支持防反爬机制、AI智能分析和Web界面操作。
+一个基于Python的微信公众号文章爬虫，通过搜狗微信搜索API获取微信公众号文章数据，并支持自动登录、防反爬机制和数据持久化存储。
 
-## 🌟 主要特性
+## 功能特性
 
-- **智能爬取**: 支持搜狗微信搜索，自动获取文章列表和完整内容
-- **防反爬系统**: 内置多重反反爬机制，包括UA轮换、智能延迟、代理支持
-- **数据存储**: 集成MinIO对象存储，支持大规模数据管理
-- **AI分析**: 基于大语言模型的智能文章分析和报告生成
-- **Web界面**: FastAPI构建的现代化Web服务
-- **定时任务**: 支持定时自动爬取和分析
-- **多格式输出**: JSON、Markdown等多种数据格式
+- ✅ **自动登录**：使用Playwright自动化登录，支持二维码扫描登录
+- ✅ **防反爬机制**：集成防反爬系统，支持代理和请求重试
+- ✅ **批量爬取**：支持同时爬取多个公众号文章
+- ✅ **数据存储**：使用SQLite数据库持久化存储文章数据
+- ✅ **完整内容获取**：支持获取文章正文内容
+- ✅ **可配置**：通过配置文件管理要爬取的公众号列表
+- ✅ **多线程处理**：使用多线程提高爬取效率
+- ✅ **日志记录**：详细的日志记录，便于调试和监控
 
-## 📁 项目结构
+## 技术栈
 
-```
-sougou/
-├── 📄 README.md                    # 项目说明文档
-├── 📄 requirements.txt             # Python依赖包
-├── 📄 使用说明.md                  # 中文使用说明
-├── 📄 防反爬系统使用说明.md        # 防反爬系统详细说明
-│
-├── 🐍 核心模块
-├── 📄 sougou_crawl.py             # 主爬虫模块
-├── 📄 fastapi_stream.py           # FastAPI Web服务
-├── 📄 anti_crawler.py             # 防反爬系统
-├── 📄 minio_storage.py            # MinIO存储模块
-│
-├── ⚙️ 配置文件
-├── 📄 anti_crawler_config.json    # 防反爬配置
-├── 📄 wechat_accounts.txt         # 公众号列表配置
-│
-├── 📊 示例文件
-├── 📄 anti_crawler_example.py     # 防反爬使用示例
-├── 📄 wechat_*.json               # 爬取结果示例
-├── 📄 analysis_report_*.md        # AI分析报告示例
-│
-└── 📁 数据目录
-    ├── 📁 data/                   # 历史爬取数据
-    └── 📁 logs/                   # 系统日志
-```
+- **Python 3.x**
+- **Playwright**：用于自动化浏览器操作和登录
+- **BeautifulSoup4**：用于HTML解析
+- **Requests**：用于HTTP请求
+- **SQLite3**：用于数据存储
+- **concurrent.futures**：用于多线程处理
 
-## 🚀 快速开始
+## 安装说明
 
-### 1. 环境准备
+### 1. 克隆仓库
 
 ```bash
-# 克隆项目
-git clone <repository-url>
-cd sougou
+git clone https://github.com/JIAJUN-TANG/Sougou-Wechat.git
+cd Sougou-Wechat
+```
 
-# 安装依赖
+### 2. 安装依赖
+
+```bash
 pip install -r requirements.txt
 ```
 
-### 2. 配置设置
+### 3. 安装Playwright浏览器
 
-#### 2.1 配置公众号列表
-编辑 `wechat_accounts.txt` 文件，添加要爬取的公众号名称：
-
-```
-证券时报
-财经早餐
-上交所发布
-21世纪经济报道
-中国基金报
-```
-
-#### 2.2 配置防反爬系统
-编辑 `anti_crawler_config.json` 文件：
-
-```json
-{
-  "max_retries": 5,
-  "base_delay": 5.0,
-  "max_delay": 15.0,
-  "request_limits": {
-    "max_requests_per_minute": 15,
-    "max_requests_per_hour": 500,
-    "concurrent_requests": 1
-  }
-}
-```
-
-#### 2.3 配置MinIO存储
-确保MinIO服务运行在 `45.120.102.142:8882`，或修改 `minio_storage.py` 中的连接配置。
-
-### 3. 运行方式
-
-#### 方式1: Web界面（推荐）
 ```bash
-python fastapi_stream.py
+playwright install
 ```
-访问: http://localhost:5001
 
-#### 方式2: 命令行爬取
+## 配置说明
+
+### 1. 公众号配置文件
+
+在项目根目录下创建或编辑 `wechat_accounts.txt` 文件，每行添加一个要爬取的公众号名称或关键词，例如：
+
+```
+老年机器人
+科技前沿
+人工智能
+```
+
+### 2. 配置说明
+
+- 空行和以 `#` 开头的行将被忽略
+- 支持同时配置多个公众号
+- 爬虫会依次爬取配置文件中的所有公众号
+
+## 使用方法
+
+### 1. 基本使用
+
+直接运行主脚本即可开始爬取：
+
 ```bash
 python sougou_crawl.py
 ```
 
+程序会自动：
+- 启动Playwright浏览器
+- 显示登录二维码
+- 使用微信扫描二维码登录
+- 从配置文件加载公众号列表
+- 开始爬取文章数据
+- 将数据保存到SQLite数据库
 
-## 🔧 核心功能
+### 2. 手动配置爬取
 
-### 1. 智能爬取系统
-
-- **多源搜索**: 支持搜狗微信搜索
-- **内容提取**: 自动提取文章标题、摘要、正文、发布时间
-- **URL解析**: 自动解析真实微信文章链接
-- **批量处理**: 支持批量爬取多个公众号
-
-### 2. 防反爬系统
-
-- **UA轮换**: 自动轮换多种浏览器User-Agent
-- **智能延迟**: 基础延迟 + 随机延迟，避免请求过快
-- **代理支持**: 支持HTTP/HTTPS代理轮换
-- **反爬检测**: 自动检测验证码、IP屏蔽等情况
-- **重试机制**: 智能重试策略，提高成功率
-
-### 3. 数据存储系统
-
-- **MinIO集成**: 使用MinIO对象存储管理文章数据
-- **多格式支持**: JSON、纯文本等多种存储格式
-- **数据检索**: 支持按时间、公众号、关键词检索
-- **统计分析**: 提供存储统计和数据分析
-
-### 4. AI分析系统
-
-- **智能分析**: 基于大语言模型的文章内容分析
-- **报告生成**: 自动生成结构化的分析报告
-- **趋势识别**: 识别市场趋势和热点话题
-- **引用标注**: 自动标注信息来源和引用
-
-## 📊 API接口
-
-### Web服务接口
-
-| 接口 | 方法 | 描述 |
-|------|------|------|
-| `/` | GET | 服务首页和API文档 |
-| `/crawl` | POST | 爬取指定公众号文章 |
-| `/crawl-and-analyze` | POST | 爬取并AI分析文章 |
-| `/database/search` | POST | 搜索存储的文章 |
-| `/storage/stats` | GET | 获取存储统计信息 |
-| `/health` | GET | 健康检查 |
-
-### 请求示例
-
-```bash
-# 爬取文章
-curl -X POST "http://localhost:5001/crawl" \
-  -H "Content-Type: application/json" \
-  -d '{"query": "证券时报", "page": 1, "get_real_urls": true, "fetch_content": true}'
-
-# 爬取并分析
-curl -X POST "http://localhost:5001/crawl-and-analyze" \
-  -H "Content-Type: application/json" \
-  -d '{"query": "财经早餐", "page": 1, "save_to_db": true}'
-```
-
-## ⚙️ 配置说明
-
-### 防反爬配置
-
-```json
-{
-  "session_pool_size": 3,           // 会话池大小
-  "use_proxy": false,               // 是否使用代理
-  "max_retries": 5,                 // 最大重试次数
-  "base_delay": 5.0,                // 基础延迟（秒）
-  "max_delay": 15.0,                // 最大延迟（秒）
-  "enable_ua_rotation": true,       // 启用UA轮换
-  "enable_delay_strategy": true,    // 启用延迟策略
-  "request_limits": {
-    "max_requests_per_minute": 15,  // 每分钟最大请求数
-    "max_requests_per_hour": 500,   // 每小时最大请求数
-    "concurrent_requests": 1         // 并发请求数
-  }
-}
-```
-
-### 定时任务配置
-
-系统支持定时自动爬取，默认每天早上8:00执行：
+您可以修改 `main()` 函数来自定义爬取参数：
 
 ```python
-# 启动定时任务
-scheduled_crawler = ScheduledCrawler(crawler)
-scheduled_crawler.schedule_daily_crawl("08:00")
+def main():
+    # 创建爬虫实例，指定搜索关键词
+    crawler = WeChatCrawler(
+        config_file="wechat_accounts.txt",  # 配置文件路径
+        use_anti_crawler=True,  # 是否使用防反爬系统
+        login_cookie_path="login_cookies.pkl"  # 登录cookie保存路径
+    )
+    
+    # 确保登录
+    if not crawler.is_logged_in:
+        crawler.login()
+    
+    # 从配置文件加载公众号列表
+    crawler.load_wechat_accounts()
+    
+    # 执行爬取
+    crawler.crawl_all_configured_accounts(
+        get_real_urls=True,  # 是否获取真实微信文章URL
+        fetch_content=True,  # 是否获取文章正文内容
+        page=None  # 爬取的页数，None表示爬取所有页
+    )
+    
+    # 关闭Playwright浏览器
+    crawler.close_playwright()
 ```
 
-## 📈 使用示例
-
-### 1. 基础爬取
+### 3. 爬取单个公众号
 
 ```python
-from sougou_crawl import WeChatCrawler
-
-# 创建爬虫实例
-crawler = WeChatCrawler(use_anti_crawler=True)
-
-# 搜索文章
-results = crawler.crawl_and_extract(
-    query="证券时报",
-    page=1,
-    get_real_urls=True,
-    fetch_content=True
-)
-
-print(f"找到 {len(results['data'])} 篇文章")
-```
-
-### 2. 批量爬取
-
-```python
-# 爬取所有配置的公众号
-results = crawler.crawl_all_configured_accounts(
-    get_real_urls=True,
-    fetch_content=True
+crawler = WeChatCrawler()
+crawler.login()
+result = crawler.crawl_and_extract(
+    query="老年机器人",  # 公众号名称或关键词
+    page=1,  # 爬取的页码
+    get_real_urls=True,  # 是否获取真实URL
+    fetch_content=True  # 是否获取文章正文
 )
 ```
 
-### 3. 定时爬取
+## 项目结构
 
-```python
-from sougou_crawl import ScheduledCrawler
-
-# 创建定时爬虫
-scheduled_crawler = ScheduledCrawler(crawler)
-
-# 立即执行一次定时任务
-total_saved = scheduled_crawler.run_daily_crawl_now()
-print(f"保存了 {total_saved} 篇文章")
+```
+Sougou-Wechat/
+├── sougou_crawl.py          # 主爬虫脚本
+├── sqlite_storage.py        # SQLite存储模块
+├── anti_crawler.py          # 防反爬系统模块
+├── wechat_accounts.txt      # 公众号配置文件
+├── login_cookies.pkl        # 登录cookie文件（自动生成）
+├── sougou_crawl.log         # 日志文件（自动生成）
+├── wechat_articles.db       # SQLite数据库文件（自动生成）
+└── requirements.txt         # 依赖包列表
 ```
 
-## 🔍 数据格式
+## 数据存储
 
-### 文章数据结构
+爬取的数据将保存到SQLite数据库 `wechat_articles.db` 中，包含以下字段：
 
-```json
-{
-  "title": "文章标题",
-  "summary": "文章摘要",
-  "source": "公众号名称",
-  "publish_time": "2025-09-15 10:30:00",
-  "sogou_url": "搜狗搜索结果链接",
-  "real_url": "真实微信文章链接",
-  "crawl_time": "2025-09-15 14:01:16",
-  "success": true,
-  "content": "文章完整正文内容",
-  "content_fetched": true
-}
-```
+| 字段名 | 类型 | 描述 |
+|--------|------|------|
+| id | INTEGER | 自增主键 |
+| title | TEXT | 文章标题 |
+| summary | TEXT | 文章摘要 |
+| source | TEXT | 文章来源（公众号名称） |
+| publish_time | TEXT | 文章发布时间 |
+| address | TEXT | 文章地址 |
+| sogou_url | TEXT | 搜狗微信链接 |
+| real_url | TEXT | 真实微信文章URL |
+| content | TEXT | 文章正文内容 |
+| crawl_time | TEXT | 爬取时间 |
+| success | INTEGER | 爬取是否成功（0/1） |
+| content_fetched | INTEGER | 是否获取到正文（0/1） |
+| keyword | TEXT | 搜索关键词 |
 
-### 分析报告格式
+## 日志记录
 
-```markdown
-# 金融微信公众号文章汇总分析报告 - 2025-09-15
+程序会生成详细的日志文件 `sougou_crawl.log`，包含：
+- 爬取过程中的所有操作
+- 错误信息和异常堆栈
+- 爬取结果统计
+- 防反爬系统状态
 
-## 一、整体概述
-（描述覆盖时间、文章数量、涉及领域）
+## 注意事项
 
-## 二、主要主题与热点
-（1）国内股市概况
-1. **主题1**：主题名
-   - 主要内容（引用示例：[2][5]）
-   - 相关数据与政策细节（引用示例：[2]）
+1. **登录问题**：
+   - 首次运行需要微信扫描二维码登录
+   - 登录状态会保存到 `login_cookies.pkl` 文件中
+   - 后续运行会自动加载登录状态
 
-## 三、关键数据与指标
-- 宏观经济数据（[4][7]）
-- 金融市场数据（[1][6]）
+2. **反爬措施**：
+   - 程序已集成防反爬机制，但建议不要频繁爬取
+   - 爬取过程中会自动添加随机延迟
+   - 若遇到验证码或封禁，请暂停一段时间后再试
 
-## 四、市场趋势与判断
-- 短期趋势（[2][4]）
-- 中期趋势（[1][3]）
+3. **性能优化**：
+   - 建议不要同时爬取过多公众号
+   - 可根据网络情况调整线程数
+   - 爬取大量数据时会占用较多内存
 
-## 五、机会与风险
-- 投资机会（[5][8]）
-- 风险提示（[2][7]）
+4. **法律合规**：
+   - 本工具仅用于学习和研究目的
+   - 请遵守相关网站的 robots.txt 规则
+   - 不要用于商业用途或恶意爬取
 
-## 六、综合结论
-- 总体判断（[全部相关编号]）
+## 常见问题
 
-## 附录：引用来源说明
-[1] 「公众号名称」 : 《文章标题》 - 文章链接
-[2] 「公众号名称」 : 《文章标题》 - 文章链接
-```
+### Q: 无法启动浏览器或显示二维码？
+A: 请确保已正确安装Playwright浏览器，执行 `playwright install` 命令。
 
-## 🛠️ 故障排除
+### Q: 爬取结果为空？
+A: 请检查是否已登录成功，或尝试更换关键词。
 
-### 常见问题
+### Q: 遇到验证码？
+A: 这是搜狗微信的反爬机制，请手动完成验证码后重新运行，或暂停一段时间后再试。
 
-1. **文章内容不完整**
-   - 原因：微信反爬虫机制
-   - 解决：调整防反爬配置，降低请求频率，增加延迟时间
+### Q: 数据库文件在哪里？
+A: 数据库文件 `wechat_articles.db` 会在首次爬取成功后自动生成在项目根目录下。
 
-2. **连接超时**
-   - 原因：网络不稳定或目标服务器响应慢
-   - 解决：增加超时时间，检查网络连接
+## 开发说明
 
-3. **MinIO连接失败**
-   - 原因：MinIO服务未启动或配置错误
-   - 解决：检查MinIO服务状态，验证连接配置
+### 1. 模块化设计
 
-4. **验证码问题**
-   - 原因：触发反爬机制
-   - 解决：暂停爬取，等待一段时间后重试
+项目采用模块化设计，便于扩展和维护：
+- `WeChatCrawler` 类：核心爬虫逻辑
+- `SQLiteArticleStorage` 类：数据存储管理
+- `AntiCrawlerSession` 类：防反爬系统
 
-### 日志查看
+### 2. 扩展建议
 
-```bash
-# 查看系统日志
-tail -f logs/wechat_analyzer_fastapi.log
+- 添加更多数据存储方式（MySQL、MongoDB等）
+- 实现分布式爬取
+- 添加Web界面管理爬取任务
+- 实现数据可视化
 
-# 查看防反爬统计
-curl http://localhost:5001/health
-```
+## 更新日志
 
-## 📋 开发计划
+- **v1.0.0**：初始版本，支持基本的微信公众号文章爬取
+- **v1.1.0**：添加防反爬机制和多线程支持
+- **v1.2.0**：完善数据存储和日志记录
 
-- [ ] 支持更多数据源（微博、知乎等）
-- [ ] 增加数据可视化功能
-- [ ] 优化AI分析算法
-- [ ] 添加用户权限管理
-- [ ] 支持分布式爬取
+## 许可证
 
-## 🤝 贡献指南
+MIT License
 
-1. Fork 项目
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 打开 Pull Request
+## 贡献
 
-## 📄 许可证
+欢迎提交Issue和Pull Request！
 
-本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情
-
-## 📞 联系方式
+## 联系方式
 
 如有问题或建议，请通过以下方式联系：
+- GitHub Issues：https://github.com/JIAJUN-TANG/Sougou-Wechat/issues
 
-- 提交 Issue
-- 发送邮件
-- 微信群讨论
+## 免责声明
 
-## 🙏 致谢
-
-感谢以下开源项目的支持：
-
-- [FastAPI](https://fastapi.tiangolo.com/) - 现代Web框架
-- [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/) - HTML解析
-- [MinIO](https://min.io/) - 对象存储
-- [LangChain](https://langchain.com/) - AI应用框架
+本项目仅用于学习和研究目的，请勿用于商业用途。使用本项目产生的一切后果由使用者自行承担。
 
 ---
 
-**⚠️ 免责声明**: 本项目仅供学习和研究使用，请遵守相关网站的使用条款和robots.txt规则，不要对目标网站造成过大压力。
+**使用说明：**
+1. 请确保您已阅读并理解本项目的注意事项和法律合规要求
+2. 合理使用爬虫，避免对目标网站造成过大压力
+3. 尊重知识产权，不要滥用爬取的数据
+4. 定期更新代码，以适应网站结构变化
 
-
+祝您使用愉快！ 🚀
 
